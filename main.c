@@ -1,12 +1,14 @@
+#include <stdio.h>
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-
-#include <stdio.h>
+#include <libavcodec/avcodec.h>
 
 #define SDL_COLOR_YELLOW (SDL_Color){255, 255, 0, 255}
 #define COOL_FONT "/System/Library/Fonts/Supplemental/Comic Sans MS Bold.ttf"
 
 TTF_Font* cool_font = NULL;
+
 
 void RenderFrame(SDL_Renderer* renderer) {
     SDL_Surface* textSurface = TTF_RenderText_Solid(cool_font, "Hello!", SDL_COLOR_YELLOW);
@@ -24,11 +26,14 @@ void RenderFrame(SDL_Renderer* renderer) {
     SDL_DestroyTexture(texture);
 }
 
-int main(int argc, char *argv[]) {
+void InitVideoStream(char* filename) {
+}
 
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        printf("SDL_Init Error: %s\n", SDL_GetError());
-        return 1;
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("argc %d\n", argc);
+        fprintf(stderr, "Usage: %s <video file> \n", argv[0]);
+        exit(0);
     }
 
     if (TTF_Init() == -1) {
@@ -41,6 +46,13 @@ int main(int argc, char *argv[]) {
         printf("Oops, couldn't load font %s!\n", COOL_FONT);
         return 1;
     }
+
+
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        printf("SDL_Init Error: %s\n", SDL_GetError());
+        return 1;
+    }
+
 
     SDL_Window *win = SDL_CreateWindow("Hello SDL", 100, 100, 640, 480, SDL_WINDOW_SHOWN);
     if (!win) {
