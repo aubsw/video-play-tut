@@ -4,5 +4,5 @@ My implementation of Dranger's ffmpeg/dsl tutorial http://dranger.com/ffmpeg/ffm
 To compile rn:
 
 ```bash
-clang -lSDL2 -o main.out main.c
+clang -lSDL2 -lSDL2_ttf -o main.out main.c
 ```
