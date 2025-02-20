@@ -12,3 +12,5 @@ And to run:
 ```bash
 ./main </path/to/video>
 ```
+
+Note that I made this with SDL2 and ffmpeg6.1. Not really sure how to bake that into the source files yet.
