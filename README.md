@@ -13,4 +13,4 @@ And to run:
 ./main </path/to/video>
 ```
 
-Note that I made this with SDL2 and ffmpeg6.1. Not really sure how to bake that into the source files yet.
+Note that I made this with SDL2 and ffmpeg6, which are notably not aligned with what the dranger doc uses. I've had to consult a variety of sources to get this working in 2025.

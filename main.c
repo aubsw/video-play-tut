@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -219,7 +220,7 @@ int main(int argc, char *argv[]) {
     }
 
 
-    SDL_Window *win = SDL_CreateWindow("Hello SDL", 100, 100, 640, 480, SDL_WINDOW_SHOWN);
+    SDL_Window *win = SDL_CreateWindow("Hello SDL", 100, 100, 640, 480, SDL_WINDOW_RESIZABLE);
     if (!win) {
         printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
         SDL_Quit();
@@ -237,10 +238,9 @@ int main(int argc, char *argv[]) {
 
     // Event loop
     SDL_Event e;
-    int quit = 0;
     int ret = 0;
-    for (int i = 0; i < 500; ++i) {
-    // while (!quit) {
+    int quit = 0;
+    for (int i = 0; i < 1500; ++i) {
         // Handle events
         while (SDL_PollEvent(&e) != 0) {
             if (e.type == SDL_QUIT) {
@@ -259,8 +259,6 @@ int main(int argc, char *argv[]) {
                 break;
             break;
         }
-        quit = 1;
-     
     }
 
     // Flush the decoder
