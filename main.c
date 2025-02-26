@@ -220,7 +220,7 @@ int main(int argc, char *argv[]) {
     }
 
 
-    SDL_Window *win = SDL_CreateWindow("Hello SDL", 100, 100, 640, 480, SDL_WINDOW_RESIZABLE);
+    SDL_Window *win = SDL_CreateWindow("AubPlayer", 100, 100, 640, 480, SDL_WINDOW_RESIZABLE);
     if (!win) {
         printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
         SDL_Quit();
@@ -240,25 +240,30 @@ int main(int argc, char *argv[]) {
     SDL_Event e;
     int ret = 0;
     int quit = 0;
-    for (int i = 0; i < 1500; ++i) {
-        // Handle events
+    for (int i = 0; i < 500; ++i) {
+
         while (SDL_PollEvent(&e) != 0) {
             if (e.type == SDL_QUIT) {
                 quit = 1;
             }
         }
 
-        while (av_read_frame(fmt_ctx, pkt) >= 0) {
-            // Check if the packet belongs to a stream we are interested in, otherwise
-            // skip it
-            if (pkt->stream_index == video_stream_idx)
-                ret = decode_packet(video_dec_ctx, pkt);
-            RenderWindow(renderer, i);
-            av_packet_unref(pkt);
-            if (ret < 0)
-                break;
+        av_read_frame(fmt_ctx, pkt);
+        // Check if the packet belongs to a stream we are interested in, otherwise
+        // skip it
+        if (pkt->stream_index == video_stream_idx)
+            ret = decode_packet(video_dec_ctx, pkt);
+        else
+            continue;
+
+        RenderWindow(renderer, i);
+        av_packet_unref(pkt);
+        if (ret < 0)
+            continue;
+        if (quit) {
             break;
         }
+        usleep(1000000/30); // 30 fps!
     }
 
     // Flush the decoder
