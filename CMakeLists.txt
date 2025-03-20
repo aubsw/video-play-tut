@@ -7,7 +7,8 @@ find_package(SDL2)
 pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf)
 pkg_check_modules(FFMPEG REQUIRED libavcodec libavformat libavutil libswscale)
 
-add_executable(AubreyVision main.c)
+add_executable(AubreyVision main.c
+        video_utils.h)
 
 target_include_directories(AubreyVision PUBLIC
         ${SDL2_INCLUDE_DIRS}
