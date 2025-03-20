@@ -1,10 +1,16 @@
 # Video Player
 My implementation of Dranger's ffmpeg/dsl tutorial http://dranger.com/ffmpeg/ffmpeg.html
 
-To compile rn:
+Some dev environment setup for apple silicon mac:
 
 ```bash
-gcc -lSDL2 -lSDL2_ttf  -lavcodec -lavformat -lavutil -o main.out main.c
+brew install sdl2 sdl2_ttf ffmpeg pkg-config
+```
+
+To compile (mac):
+
+```bash
+gcc -g -lavcodec -lavformat -lavutil -o main.out main.c $(pkg-config --cflags --libs sdl2 sdl2_ttf)
 ```
 
 And to run:
