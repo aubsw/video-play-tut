@@ -56,16 +56,14 @@ void Render(SDL_Renderer* renderer, AVFrame *f, int frameNum) {
 }
 
 void _render(int frame_num) {
-    AVFrame *f;
-    f = av_frame_alloc();
+    AVFrame *f = av_frame_alloc();
     usleep(1000000/30); // 30 fps!
     pop_q(&frame_buff, f);
     Render(renderer, f, frame_num);
 }
 void* rendering_thrd(void* arg) {
     // TODO: Make this run until we're out of video frames
-    AVFrame *f;
-    f = av_frame_alloc();
+    AVFrame *f = av_frame_alloc();
     for (int i = 0; i < 500; i++) {
         usleep(1000000/30); // 30 fps!
         pop_q(&frame_buff, f);
@@ -81,6 +79,7 @@ int _decode() {
         // Early return if not a video packet (since this is a toy audio-less video player).
         if (pkt->stream_index != video_stream_idx) {
             av_packet_unref(pkt);
+            continue;
         }
         const int ret = decode_packet(video_dec_ctx, pkt);
         if (!ret) {
@@ -88,6 +87,7 @@ int _decode() {
             printf("pushed a frame!\n");
             got_frames=0;
         }
+        av_packet_unref(pkt);
     }
     return got_frames;
 }
@@ -159,6 +159,7 @@ int main(int argc, char *argv[]) {
                 quit = 1;
             }
         }
+        // TODO: Ignore the obvious deadlock for now.
         if (!_decode()) {
             _render(i);
         }
