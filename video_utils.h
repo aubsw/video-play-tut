@@ -153,3 +153,39 @@ void InitVideoStuff(char* filename) {
     }
 }
 
+void Render(SDL_Renderer* renderer, AVFrame *f, int frameNum) {
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);  // Red color
+    SDL_RenderClear(renderer);  // Clear screen with red
+
+    // Convert FFmpeg frame to SDL texture
+    SDL_Texture* texture_vid = SDL_CreateTexture(
+        renderer,
+        SDL_PIXELFORMAT_YV12,  // Adjust format to match your frame
+        SDL_TEXTUREACCESS_STREAMING,
+        f->width,
+        f->height
+    );
+
+    // Update texture with frame data
+    SDL_UpdateYUVTexture(texture_vid,
+        NULL,
+        f->data[0], f->linesize[0],  // Y plane
+        f->data[1], f->linesize[1],  // U plane
+        f->data[2], f->linesize[2]   // V plane
+    );
+
+    SDL_RenderCopy(renderer, texture_vid, NULL, NULL);
+
+    char txt[200];
+    sprintf(txt, "Hello! %d", frameNum);
+    SDL_Surface* textSurface = TTF_RenderText_Solid(cool_font, txt, SDL_COLOR_YELLOW);
+    SDL_Texture*texture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    SDL_Rect rect = {
+        .x = 0, .y = 0, .w = textSurface->w, .h = textSurface->h
+    };
+
+    SDL_RenderCopy(renderer, texture, NULL, &rect);
+    SDL_RenderPresent(renderer);  // Update the window
+    SDL_FreeSurface(textSurface);
+    SDL_DestroyTexture(texture);
+}

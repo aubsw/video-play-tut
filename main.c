@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <stdbool.h>
 #include "video_utils.h"
 #include "frame_queue.h"
 
@@ -10,6 +11,8 @@ AVPacket* pkt = NULL;
 
 SDL_Renderer *renderer;
 
+bool end_of_file_reached = false;
+
 FrameQ frame_buff = {
     .front = 0,
     .cnt = 0,
@@ -18,91 +21,29 @@ FrameQ frame_buff = {
     .buffer_has_stuff = PTHREAD_COND_INITIALIZER,
 };
 
-void Render(SDL_Renderer* renderer, AVFrame *f, int frameNum) {
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);  // Red color
-    SDL_RenderClear(renderer);  // Clear screen with red
-
-    // Convert FFmpeg frame to SDL texture
-    SDL_Texture* texture_vid = SDL_CreateTexture(
-        renderer,
-        SDL_PIXELFORMAT_YV12,  // Adjust format to match your frame
-        SDL_TEXTUREACCESS_STREAMING,
-        f->width,
-        f->height
-    );
-
-    // Update texture with frame data
-    SDL_UpdateYUVTexture(texture_vid,
-        NULL,
-        f->data[0], f->linesize[0],  // Y plane
-        f->data[1], f->linesize[1],  // U plane
-        f->data[2], f->linesize[2]   // V plane
-    );
-
-    SDL_RenderCopy(renderer, texture_vid, NULL, NULL);
-
-    char txt[200];
-    sprintf(txt, "Hello! %d", frameNum);
-    SDL_Surface* textSurface = TTF_RenderText_Solid(cool_font, txt, SDL_COLOR_YELLOW);
-    SDL_Texture*texture = SDL_CreateTextureFromSurface(renderer, textSurface);
-    SDL_Rect rect = {
-        .x = 0, .y = 0, .w = textSurface->w, .h = textSurface->h
-    };
-
-    SDL_RenderCopy(renderer, texture, NULL, &rect);
-    SDL_RenderPresent(renderer);  // Update the window
-    SDL_FreeSurface(textSurface);
-    SDL_DestroyTexture(texture);
-}
-
-void _render(int frame_num) {
-    AVFrame *f = av_frame_alloc();
-    usleep(1000000/30); // 30 fps!
-    pop_q(&frame_buff, f);
-    Render(renderer, f, frame_num);
-}
 void* rendering_thrd(void* arg) {
-    // TODO: Make this run until we're out of video frames
     AVFrame *f = av_frame_alloc();
-    for (int i = 0; i < 500; i++) {
+    int frame_num = 0;
+    while (!(end_of_file_reached && frame_buff.cnt)) {
         usleep(1000000/30); // 30 fps!
         pop_q(&frame_buff, f);
-        Render(renderer, f, i);
+        Render(renderer, f, frame_num);
+        frame_num++;
     }
-}
-
-int _decode() {
-    int got_frames = 1;
-    for (int i = 0; i < 20 && frame_buff.cnt >= 0 && frame_buff.cnt < FRAME_BUFFER_SIZE; i++) {
-        av_read_frame(fmt_ctx, pkt);
-        // Early return if not a video packet (since this is a toy audio-less video player).
-        if (pkt->stream_index != video_stream_idx) {
-            av_packet_unref(pkt);
-            continue;
-        }
-        const int ret = decode_packet(video_dec_ctx, pkt);
-        if (!ret) {
-            push_q(&frame_buff, frame);
-            got_frames=0;
-        }
-        av_packet_unref(pkt);
-    }
-    return got_frames;
 }
 
 void* decoder_thrd(void* arg) {
-    // TODO: Make this run until we're out of video frames
-    for (int i = 0; i < 500; i++) {
+    while (!end_of_file_reached) {
         av_read_frame(fmt_ctx, pkt);
-        // Early return if not a video packet (since this is a toy audio-less video player).
-        if (pkt->stream_index != video_stream_idx) {
-            av_packet_unref(pkt);
-            continue;
+        if (pkt->stream_index == video_stream_idx) {
+            int ret = decode_packet(video_dec_ctx, pkt);
+            if (!ret) {
+                push_q(&frame_buff, frame);
+            } else if (ret == AVERROR_EOF) {
+                end_of_file_reached = true;
+            }
         }
-        const int ret = decode_packet(video_dec_ctx, pkt);
-        if (!ret) {
-            push_q(&frame_buff, frame);
-        }
+        av_packet_unref(pkt);
     }
 }
 
@@ -116,7 +57,6 @@ int main(int argc, char *argv[]) {
     InitVideoStuff(argv[1]);
 
     // Init frame buff
-    // TODO: Make this good.
     for (int i = 0; i < FRAME_BUFFER_SIZE; i++) {
         frame_buff.frames[i] = av_frame_alloc();
     }
@@ -141,32 +81,28 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // pthread_t reading, rendering;
-    // pthread_create(&reading, NULL, decoder_thrd, NULL);
-    // pthread_create(&rendering, NULL, rendering_thrd, NULL);
+    pthread_t reading, rendering;
+    pthread_create(&reading, NULL, decoder_thrd, NULL);
+    pthread_create(&rendering, NULL, rendering_thrd, NULL);
 
     // Event loop
     SDL_Event e;
     int quit = 0;
-    int frame_cnt = 0;
-    // for (;;) {
-    for (int i = 0; i < 500; ++i) {
-
+    while (!quit) {
         while (SDL_PollEvent(&e) != 0) {
             if (e.type == SDL_QUIT) {
                 quit = 1;
+                pthread_cancel(reading);
+                pthread_cancel(rendering);
             }
         }
-        if (!_decode()) {
-            _render(i);
-        }
-        if (quit) {
+        if (end_of_file_reached) {
             break;
         }
     }
 
-    // pthread_cancel(reading);
-    // pthread_cancel(rendering);
+    pthread_join(reading, NULL);
+    pthread_join(rendering, NULL);
 
     // Flush the decoder
     decode_packet(video_dec_ctx, NULL);
