@@ -12,6 +12,7 @@ AVPacket* pkt = NULL;
 SDL_Renderer *renderer;
 
 bool end_of_file_reached = false;
+bool paused = false;
 
 FrameQ frame_buff = {
     .front = 0,
@@ -25,6 +26,10 @@ void* rendering_thrd(void* arg) {
     AVFrame *f = av_frame_alloc();
     int frame_num = 0;
     while (!(end_of_file_reached && frame_buff.cnt)) {
+        if (paused) {
+            usleep(1000000/2); // 0.5 seconds
+            continue;
+        }
         usleep(1000000/30); // 30 fps!
         pop_q(&frame_buff, f);
         Render(renderer, f, frame_num);
@@ -94,6 +99,15 @@ int main(int argc, char *argv[]) {
                 quit = 1;
                 pthread_cancel(reading);
                 pthread_cancel(rendering);
+            }
+            if (e.type == SDL_MOUSEBUTTONUP) {
+                if (e.button.button == SDL_BUTTON_LEFT) {
+                    int x = e.button.x;
+                    int y = e.button.y;
+                    printf("Mouse release at: %d, %d\n", x, y);
+                    // Toggle pause on release
+                    paused = !paused;
+                }
             }
         }
         if (end_of_file_reached) {
