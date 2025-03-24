@@ -86,7 +86,7 @@ static int decode_packet(AVCodecContext *dec, const AVPacket *pkt)
 
     ret = avcodec_receive_frame(dec, frame);
     if (ret < 0) {
-        // those two return values are special and mean there is no output
+        // These two return values are special and mean there is no output
         // frame available, but there were no errors during decoding
         if (ret == AVERROR_EOF || ret == AVERROR(EAGAIN))
             return 0;
