@@ -73,8 +73,7 @@ void* rendering_thrd(void* arg) {
 
 int _decode() {
     int got_frames = 1;
-    for (int i =0; i <20; i++) {
-        printf("num frames: %d\n", frame_buff.cnt);
+    for (int i = 0; i < 20 && frame_buff.cnt >= 0 && frame_buff.cnt < FRAME_BUFFER_SIZE; i++) {
         av_read_frame(fmt_ctx, pkt);
         // Early return if not a video packet (since this is a toy audio-less video player).
         if (pkt->stream_index != video_stream_idx) {
@@ -84,7 +83,6 @@ int _decode() {
         const int ret = decode_packet(video_dec_ctx, pkt);
         if (!ret) {
             push_q(&frame_buff, frame);
-            printf("pushed a frame!\n");
             got_frames=0;
         }
         av_packet_unref(pkt);
@@ -159,7 +157,6 @@ int main(int argc, char *argv[]) {
                 quit = 1;
             }
         }
-        // TODO: Ignore the obvious deadlock for now.
         if (!_decode()) {
             _render(i);
         }
